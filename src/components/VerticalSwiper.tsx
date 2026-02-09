@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Mousewheel, Pagination } from 'swiper/modules';
 import Image from 'next/image';
@@ -15,6 +15,23 @@ import 'swiper/css/pagination';
 export default function VerticalSwiper() {
   const swiperRef = useRef<SwiperType | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // 現在のスライドが横スワイプセクションかどうか
+  const currentSlide = slides[currentSlideIndex];
+  const isHorizontalSection = currentSlide?.horizontalSlides && currentSlide.horizontalSlides.length > 0;
+
+  // 横スワイプセクションに入ったらSwiperのタッチを無効化
+  useEffect(() => {
+    if (swiperRef.current) {
+      if (isHorizontalSection) {
+        swiperRef.current.allowTouchMove = false;
+        swiperRef.current.mousewheel?.disable();
+      } else {
+        swiperRef.current.allowTouchMove = true;
+        swiperRef.current.mousewheel?.enable();
+      }
+    }
+  }, [isHorizontalSection]);
 
   const goToNext = useCallback(() => {
     if (swiperRef.current) {
@@ -48,13 +65,12 @@ export default function VerticalSwiper() {
   // 横スワイプ完了時に次へ
   const handleHorizontalComplete = useCallback(() => {
     if (swiperRef.current) {
+      // 縦スワイプを再有効化してから次へ
+      swiperRef.current.allowTouchMove = true;
+      swiperRef.current.mousewheel?.enable();
       swiperRef.current.slideNext();
     }
   }, []);
-
-  // 現在のスライドが横スワイプセクションかどうか
-  const currentSlide = slides[currentSlideIndex];
-  const isHorizontalSection = currentSlide?.horizontalSlides && currentSlide.horizontalSlides.length > 0;
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-black">
@@ -71,8 +87,6 @@ export default function VerticalSwiper() {
           thresholdDelta: 30,
           thresholdTime: 500,
         }}
-        // 横スワイプセクションではタッチを無効化
-        allowTouchMove={!isHorizontalSection}
         touchRatio={1.5}
         threshold={10}
         modules={[Mousewheel, Pagination]}
@@ -81,7 +95,7 @@ export default function VerticalSwiper() {
           bulletClass: 'swiper-pagination-bullet !bg-white/40 !w-2 !h-2 !mx-1',
           bulletActiveClass: '!bg-white !w-2 !h-4 !rounded-full',
         }}
-        className="w-full h-full"
+        className="w-full h-full vertical-swiper"
         style={{
           // @ts-expect-error CSS custom property
           '--swiper-pagination-bottom': '20px',

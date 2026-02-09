@@ -142,8 +142,8 @@ export default function VerticalSwiper() {
         ))}
       </Swiper>
 
-      {/* スワイプインジケーター - 横スワイプセクションでは非表示 */}
-      {!isHorizontalSection && (
+      {/* スワイプインジケーター - 横スワイプセクション・最終ページでは非表示 */}
+      {!isHorizontalSection && currentSlideIndex < slides.length - 1 && (
         <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce pointer-events-none">
           <div
             className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"

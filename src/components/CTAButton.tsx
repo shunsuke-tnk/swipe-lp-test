@@ -1,13 +1,16 @@
 'use client';
 
 import { CTAButton as CTAButtonType } from '@/data/slides';
+import { useAnalytics } from '@/components/analytics/AnalyticsProvider';
 
 interface CTAButtonProps {
   cta: CTAButtonType;
+  slideId?: string;
   onAction?: () => void;
 }
 
-export default function CTAButton({ cta, onAction }: CTAButtonProps) {
+export default function CTAButton({ cta, slideId, onAction }: CTAButtonProps) {
+  const { trackCTAClick, currentSlide } = useAnalytics();
   const positionClasses = {
     'bottom-center': 'left-1/2 -translate-x-1/2 bottom-[50px]',
     'bottom-right': 'right-4 bottom-[60px]',
@@ -50,6 +53,14 @@ export default function CTAButton({ cta, onAction }: CTAButtonProps) {
   };
 
   const handleClick = () => {
+    // Track CTA click
+    trackCTAClick({
+      slideId: slideId || currentSlide,
+      ctaText: cta.text,
+      ctaAction: cta.action,
+      ctaHref: cta.href,
+    });
+
     if (cta.action === 'link' && cta.href) {
       window.open(cta.href, '_blank');
     } else if (onAction) {

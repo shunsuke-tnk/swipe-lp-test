@@ -7,6 +7,8 @@ import Image from 'next/image';
 import CTAButton from './CTAButton';
 import HorizontalSwiper from './HorizontalSwiper';
 import { slides } from '@/data/slides';
+import { useAnalytics } from '@/components/analytics/AnalyticsProvider';
+import { ClickTracker } from '@/components/analytics/ClickTracker';
 import type { Swiper as SwiperType } from 'swiper';
 
 import 'swiper/css';
@@ -15,6 +17,7 @@ import 'swiper/css/pagination';
 export default function VerticalSwiper() {
   const swiperRef = useRef<SwiperType | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const { trackPageView, setCurrentSlide } = useAnalytics();
 
   // 現在のスライドが横スワイプセクションかどうか
   const currentSlide = slides[currentSlideIndex];
@@ -59,8 +62,20 @@ export default function VerticalSwiper() {
   }, [goToNext, goToPrev]);
 
   const handleSlideChange = useCallback((swiper: SwiperType) => {
-    setCurrentSlideIndex(swiper.activeIndex);
-  }, []);
+    const newIndex = swiper.activeIndex;
+    const slide = slides[newIndex];
+    const prevIndex = swiper.previousIndex;
+
+    setCurrentSlideIndex(newIndex);
+    setCurrentSlide(slide.id);
+
+    // Track page view
+    trackPageView({
+      slideId: slide.id,
+      slideType: 'vertical',
+      scrollDirection: newIndex > prevIndex ? 'next' : 'prev',
+    });
+  }, [trackPageView, setCurrentSlide]);
 
   // 横スワイプ完了時に次へ
   const handleHorizontalComplete = useCallback(() => {
@@ -84,6 +99,7 @@ export default function VerticalSwiper() {
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-black">
+      <ClickTracker slideId={currentSlide?.id || '01'} />
       <Swiper
         onSwiper={(swiper) => {
           swiperRef.current = swiper;

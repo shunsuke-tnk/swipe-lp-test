@@ -2,17 +2,17 @@
 
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Mousewheel, Pagination } from 'swiper/modules';
+import { Mousewheel } from 'swiper/modules';
 import Image from 'next/image';
 import CTAButton from './CTAButton';
 import HorizontalSwiper from './HorizontalSwiper';
+import Pagination from './Pagination';
 import { slides } from '@/data/slides';
 import { useAnalytics } from '@/components/analytics/AnalyticsProvider';
 import { ClickTracker } from '@/components/analytics/ClickTracker';
 import type { Swiper as SwiperType } from 'swiper';
 
 import 'swiper/css';
-import 'swiper/css/pagination';
 
 export default function VerticalSwiper() {
   const swiperRef = useRef<SwiperType | null>(null);
@@ -45,6 +45,12 @@ export default function VerticalSwiper() {
   const goToPrev = useCallback(() => {
     if (swiperRef.current) {
       swiperRef.current.slidePrev();
+    }
+  }, []);
+
+  const goToSlide = useCallback((index: number) => {
+    if (swiperRef.current) {
+      swiperRef.current.slideTo(index);
     }
   }, []);
 
@@ -115,12 +121,7 @@ export default function VerticalSwiper() {
         }}
         touchRatio={1.5}
         threshold={10}
-        modules={[Mousewheel, Pagination]}
-        pagination={{
-          clickable: true,
-          bulletClass: 'swiper-pagination-bullet !bg-white/40 !w-2 !h-2 !mx-1',
-          bulletActiveClass: '!bg-white !w-2 !h-4 !rounded-full',
-        }}
+        modules={[Mousewheel]}
         className="w-full h-full vertical-swiper"
         style={{
           // @ts-expect-error CSS custom property
@@ -183,39 +184,14 @@ export default function VerticalSwiper() {
         </div>
       )}
 
-      {/* 横スワイプセクションでは左右インジケーター */}
-      {isHorizontalSection && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-pulse pointer-events-none">
-          <div className="flex items-center gap-2 text-white/60 text-xs">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16l-4-4m0 0l4-4m-4 4h18"
-              />
-            </svg>
-            <span>左右にスワイプ</span>
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 8l4 4m0 0l-4 4m4-4H3"
-              />
-            </svg>
-          </div>
-        </div>
+      {/* カスタムページネーション - 横スワイプセクション以外で表示 */}
+      {!isHorizontalSection && (
+        <Pagination
+          current={currentSlideIndex}
+          total={slides.length}
+          direction="vertical"
+          onDotClick={goToSlide}
+        />
       )}
     </div>
   );

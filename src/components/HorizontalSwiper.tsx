@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import CTAButton from './CTAButton';
+import Pagination from './Pagination';
 import type { Slide } from '@/data/slides';
 
 interface HorizontalSwiperProps {
@@ -84,6 +85,18 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
       onPrevRef.current();
     }
   }, [currentIndex]);
+
+  // 特定のスライドへ移動
+  const goToSlide = useCallback((index: number) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const slideWidth = container.clientWidth;
+    container.scrollTo({
+      left: index * slideWidth,
+      behavior: 'smooth',
+    });
+  }, []);
 
   // 統合されたタッチイベントハンドラ
   useEffect(() => {
@@ -270,28 +283,12 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
       </div>
 
       {/* ページネーション */}
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              const container = containerRef.current;
-              if (container) {
-                container.scrollTo({
-                  left: index * container.clientWidth,
-                  behavior: 'smooth',
-                });
-              }
-            }}
-            className={`rounded-full transition-all duration-300 ${
-              index === currentIndex
-                ? 'w-3 h-3 bg-white'
-                : 'w-2 h-2 bg-white/50'
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
+      <Pagination
+        current={currentIndex}
+        total={slides.length}
+        direction="horizontal"
+        onDotClick={goToSlide}
+      />
 
       {/* 最初のスライド：戻るヒント */}
       {showLeftHint && onPrev && (
@@ -349,10 +346,6 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
         </button>
       )}
 
-      {/* 進捗表示 */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-white/60 text-xs bg-black/30 px-3 py-1 rounded-full">
-        {currentIndex + 1} / {slides.length}
-      </div>
     </div>
   );
 }

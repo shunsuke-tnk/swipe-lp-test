@@ -69,22 +69,6 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
     }
   }, [currentIndex, slides.length]);
 
-  // 前のスライドへ
-  const goToPrev = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (currentIndex > 0) {
-      const slideWidth = container.clientWidth;
-      container.scrollTo({
-        left: (currentIndex - 1) * slideWidth,
-        behavior: 'smooth',
-      });
-    } else if (onPrevRef.current) {
-      onPrevRef.current();
-    }
-  }, [currentIndex]);
-
   // 特定のスライドへ移動
   const goToSlide = useCallback((index: number) => {
     const container = containerRef.current;
@@ -239,7 +223,6 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
   }, [slides.length, updateCurrentIndex]);
 
   // ヒント表示の計算
-  const showLeftHint = currentIndex === 0;
   const showRightHint = currentIndex === slides.length - 1;
 
   return (
@@ -283,53 +266,36 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
         onDotClick={goToSlide}
       />
 
-      {/* 最初のスライド：戻るヒント */}
-      {showLeftHint && onPrev && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 animate-pulse">
-          <button
-            onClick={goToPrev}
-            className="flex flex-col items-center gap-1 text-white text-xs font-medium bg-black/60 px-3 py-2 rounded-full backdrop-blur-md"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-            aria-label="Go to previous section"
-          >
-            <svg className="w-4 h-4 rotate-90 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>戻る</span>
-          </button>
-        </div>
-      )}
 
-      {/* 最後のスライド：次へヒント */}
+      {/* 最後のスライド：下スワイプヒント */}
       {showRightHint && onComplete && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 animate-pulse">
-          <button
-            onClick={goToNext}
-            className="flex flex-col items-center gap-1 text-white text-xs font-medium bg-black/60 px-3 py-2 rounded-full backdrop-blur-md"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-            aria-label="Go to next section"
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none">
+          <div
+            className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
+            style={{
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+            }}
           >
-            <svg className="w-4 h-4 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            <svg
+              className="w-5 h-5 mb-0.5 drop-shadow-md"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 14l-7 7m0 0l-7-7m7 7V3"
+              />
             </svg>
-            <span>次へ</span>
-          </button>
+            <span className="font-medium">Swipe</span>
+          </div>
         </div>
       )}
 
-      {/* 中間スライドでの左右矢印 */}
-      {!showLeftHint && currentIndex > 0 && (
-        <button
-          onClick={goToPrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white"
-          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
-          aria-label="Previous slide"
-        >
-          <svg className="w-6 h-6 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      )}
+      {/* 中間スライドでの右矢印 */}
       {!showRightHint && currentIndex < slides.length - 1 && (
         <button
           onClick={goToNext}

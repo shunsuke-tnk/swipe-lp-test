@@ -72,6 +72,16 @@ export default function VerticalSwiper() {
     }
   }, []);
 
+  // 横スワイプで前のセクションへ戻る
+  const handleHorizontalPrev = useCallback(() => {
+    if (swiperRef.current) {
+      // 縦スワイプを再有効化してから前へ
+      swiperRef.current.allowTouchMove = true;
+      swiperRef.current.mousewheel?.enable();
+      swiperRef.current.slidePrev();
+    }
+  }, []);
+
   return (
     <div className="w-screen h-screen overflow-hidden bg-black">
       <Swiper
@@ -109,6 +119,7 @@ export default function VerticalSwiper() {
               <HorizontalSwiper
                 slides={slide.horizontalSlides}
                 onComplete={handleHorizontalComplete}
+                onPrev={handleHorizontalPrev}
               />
             ) : (
               /* 通常の縦スワイプスライド */

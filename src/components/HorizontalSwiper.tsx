@@ -8,11 +8,15 @@ import type { Slide } from '@/data/slides';
 interface HorizontalSwiperProps {
   slides: NonNullable<Slide['horizontalSlides']>;
   onComplete?: () => void;
+  onPrev?: () => void;
 }
 
-export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwiperProps) {
+export default function HorizontalSwiper({ slides, onComplete, onPrev }: HorizontalSwiperProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showLeftHint, setShowLeftHint] = useState(true);
+  const [showRightHint, setShowRightHint] = useState(false);
 
   // スクロール位置からインデックスを計算
   const handleScroll = useCallback(() => {
@@ -27,13 +31,9 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
       setCurrentIndex(newIndex);
     }
 
-    // 最後のスライドで右端に達したら次のセクションへ
-    if (newIndex === slides.length - 1) {
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      if (scrollLeft >= maxScroll - 10) {
-        // 既に最後にいて、更にスクロールしようとしている
-      }
-    }
+    // ヒント表示の更新
+    setShowLeftHint(newIndex === 0);
+    setShowRightHint(newIndex === slides.length - 1);
   }, [currentIndex, slides.length]);
 
   // 次のスライドへ
@@ -66,8 +66,13 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
         left: (currentIndex - 1) * slideWidth,
         behavior: 'smooth',
       });
+    } else {
+      // 最初のスライドなら前のセクションへ
+      if (onPrev) {
+        onPrev();
+      }
     }
-  }, [currentIndex]);
+  }, [currentIndex, onPrev]);
 
   // スクロール終了検出
   useEffect(() => {
@@ -90,7 +95,83 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
     };
   }, [handleScroll]);
 
-  // タッチイベントで親への伝播を防止
+  // 親要素でタッチイベントを検出（縦スワイプ用）
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const container = containerRef.current;
+    if (!wrapper || !container) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startScrollLeft = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startScrollLeft = container.scrollLeft;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const diffX = endX - startX;
+      const diffY = endY - startY;
+      const absDiffX = Math.abs(diffX);
+      const absDiffY = Math.abs(diffY);
+
+      const currentScrollLeft = container.scrollLeft;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const slideWidth = container.clientWidth;
+      const currentIdx = Math.round(currentScrollLeft / slideWidth);
+      const isFirstSlide = currentIdx === 0;
+      const isLastSlide = currentIdx === slides.length - 1;
+
+      // 縦スワイプの処理（縦方向の動きが横より大きい場合）
+      if (absDiffY > absDiffX && absDiffY > 50) {
+        // 最後のスライドで上にスワイプ → 次の縦スライドへ
+        if (isLastSlide && diffY < -50) {
+          if (onComplete) {
+            onComplete();
+          }
+          return;
+        }
+        // 最初のスライドで下にスワイプ → 前の縦スライドへ
+        if (isFirstSlide && diffY > 50) {
+          if (onPrev) {
+            onPrev();
+          }
+          return;
+        }
+      }
+
+      // 横スワイプの処理
+      if (absDiffX > absDiffY && absDiffX > 50) {
+        // 左端で右にスワイプ（前に戻る）
+        if (startScrollLeft <= 5 && diffX > 50 && currentScrollLeft <= 5) {
+          if (onPrev) {
+            onPrev();
+          }
+        }
+
+        // 右端で左にスワイプ（次へ進む）
+        if (startScrollLeft >= maxScroll - 5 && diffX < -50 && currentScrollLeft >= maxScroll - 5) {
+          if (onComplete) {
+            onComplete();
+          }
+        }
+      }
+    };
+
+    wrapper.addEventListener('touchstart', handleTouchStart, { passive: true });
+    wrapper.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      wrapper.removeEventListener('touchstart', handleTouchStart);
+      wrapper.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [onComplete, onPrev, slides.length]);
+
+  // 横スクロール中は親への伝播を防止
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -123,7 +204,11 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
   }, []);
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      ref={wrapperRef}
+      className="relative w-full h-full"
+      style={{ touchAction: 'none' }}
+    >
       {/* スクロールコンテナ */}
       <div
         ref={containerRef}
@@ -159,8 +244,8 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
         ))}
       </div>
 
-      {/* ページネーション */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      {/* ページネーション（現在位置表示） */}
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-10">
         {slides.map((_, index) => (
           <button
             key={index}
@@ -182,8 +267,38 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
         ))}
       </div>
 
-      {/* 左右ナビゲーションボタン */}
-      {currentIndex > 0 && (
+      {/* 最初のスライド：下にスワイプで戻るヒント */}
+      {showLeftHint && onPrev && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 animate-pulse">
+          <button
+            onClick={goToPrev}
+            className="flex flex-col items-center gap-1 text-white/70 text-xs bg-black/30 px-3 py-2 rounded-full"
+          >
+            <svg className="w-4 h-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>戻る</span>
+          </button>
+        </div>
+      )}
+
+      {/* 最後のスライド：上にスワイプで次へヒント */}
+      {showRightHint && onComplete && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 animate-pulse">
+          <button
+            onClick={goToNext}
+            className="flex flex-col items-center gap-1 text-white/70 text-xs bg-black/30 px-3 py-2 rounded-full"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+            <span>次へ</span>
+          </button>
+        </div>
+      )}
+
+      {/* 中間スライドでの左右矢印 */}
+      {!showLeftHint && currentIndex > 0 && (
         <button
           onClick={goToPrev}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/30 flex items-center justify-center text-white"
@@ -193,7 +308,7 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
           </svg>
         </button>
       )}
-      {currentIndex < slides.length - 1 && (
+      {!showRightHint && currentIndex < slides.length - 1 && (
         <button
           onClick={goToNext}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/30 flex items-center justify-center text-white"
@@ -203,6 +318,11 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
           </svg>
         </button>
       )}
+
+      {/* 進捗表示 */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-white/60 text-xs bg-black/30 px-3 py-1 rounded-full">
+        {currentIndex + 1} / {slides.length}
+      </div>
     </div>
   );
 }

@@ -139,6 +139,7 @@ export default function HorizontalSwiper({ slides, onComplete }: HorizontalSwipe
           <div
             key={slide.id}
             className="w-full h-full flex-shrink-0 snap-center relative"
+            style={{ scrollSnapStop: 'always' }}
           >
             <Image
               src={slide.image}

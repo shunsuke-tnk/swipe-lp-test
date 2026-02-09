@@ -4,7 +4,6 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Mousewheel } from 'swiper/modules';
 import Image from 'next/image';
-import CTAButton from './CTAButton';
 import HorizontalSwiper from './HorizontalSwiper';
 import Pagination from './Pagination';
 import { slides } from '@/data/slides';
@@ -54,18 +53,6 @@ export default function VerticalSwiper() {
     }
   }, []);
 
-  const handleCTAAction = useCallback((action: string) => {
-    switch (action) {
-      case 'scroll-next':
-        goToNext();
-        break;
-      case 'scroll-prev':
-        goToPrev();
-        break;
-      default:
-        break;
-    }
-  }, [goToNext, goToPrev]);
 
   const handleSlideChange = useCallback((swiper: SwiperType) => {
     const newIndex = swiper.activeIndex;
@@ -149,13 +136,6 @@ export default function VerticalSwiper() {
                   priority={index < 2}
                 />
 
-                {/* CTA オーバーレイボタン */}
-                {slide.cta && (
-                  <CTAButton
-                    cta={slide.cta}
-                    onAction={() => handleCTAAction(slide.cta!.action)}
-                  />
-                )}
               </div>
             )}
           </SwiperSlide>
@@ -164,7 +144,7 @@ export default function VerticalSwiper() {
 
       {/* スワイプインジケーター - 横スワイプセクションでは非表示 */}
       {!isHorizontalSection && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-bounce pointer-events-none">
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce pointer-events-none">
           <div
             className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
             style={{

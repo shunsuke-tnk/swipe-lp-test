@@ -2,7 +2,6 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import CTAButton from './CTAButton';
 import Pagination from './Pagination';
 import type { Slide } from '@/data/slides';
 
@@ -272,12 +271,6 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
               priority={index === 0}
               draggable={false}
             />
-            {slide.cta && (
-              <CTAButton
-                cta={slide.cta}
-                onAction={slide.cta.action === 'scroll-prev' ? goToPrev : goToNext}
-              />
-            )}
           </div>
         ))}
       </div>

@@ -165,21 +165,27 @@ export default function VerticalSwiper() {
       {/* スワイプインジケーター - 横スワイプセクションでは非表示 */}
       {!isHorizontalSection && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-bounce pointer-events-none">
-          <div className="flex flex-col items-center text-white/60 text-xs">
+          <div
+            className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
+            style={{
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+            }}
+          >
             <svg
-              className="w-6 h-6 mb-1"
+              className="w-5 h-5 mb-0.5 drop-shadow-md"
               fill="none"
               stroke="currentColor"
+              strokeWidth={2.5}
               viewBox="0 0 24 24"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
                 d="M19 14l-7 7m0 0l-7-7m7 7V3"
               />
             </svg>
-            <span>Swipe</span>
+            <span className="font-medium">Swipe</span>
           </div>
         </div>
       )}

@@ -295,11 +295,12 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 animate-pulse">
           <button
             onClick={goToPrev}
-            className="flex flex-col items-center gap-1 text-white/70 text-xs bg-black/30 px-3 py-2 rounded-full"
+            className="flex flex-col items-center gap-1 text-white text-xs font-medium bg-black/60 px-3 py-2 rounded-full backdrop-blur-md"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
             aria-label="Go to previous section"
           >
-            <svg className="w-4 h-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-4 h-4 rotate-90 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
             <span>戻る</span>
           </button>
@@ -311,11 +312,12 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
         <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 animate-pulse">
           <button
             onClick={goToNext}
-            className="flex flex-col items-center gap-1 text-white/70 text-xs bg-black/30 px-3 py-2 rounded-full"
+            className="flex flex-col items-center gap-1 text-white text-xs font-medium bg-black/60 px-3 py-2 rounded-full backdrop-blur-md"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
             aria-label="Go to next section"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            <svg className="w-4 h-4 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
             </svg>
             <span>次へ</span>
           </button>
@@ -326,22 +328,24 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
       {!showLeftHint && currentIndex > 0 && (
         <button
           onClick={goToPrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/30 flex items-center justify-center text-white"
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white"
+          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
           aria-label="Previous slide"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="w-6 h-6 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
       )}
       {!showRightHint && currentIndex < slides.length - 1 && (
         <button
           onClick={goToNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/30 flex items-center justify-center text-white"
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white"
+          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
           aria-label="Next slide"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg className="w-6 h-6 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
       )}

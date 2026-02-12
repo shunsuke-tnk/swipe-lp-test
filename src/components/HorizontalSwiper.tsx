@@ -1,9 +1,14 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import Image from 'next/image';
 import Pagination from './Pagination';
 import type { Slide } from '@/data/slides';
+
+export interface HorizontalSwiperHandle {
+  goToNext: () => void;
+  goToPrev: () => void;
+}
 
 interface HorizontalSwiperProps {
   slides: NonNullable<Slide['horizontalSlides']>;
@@ -15,7 +20,10 @@ interface HorizontalSwiperProps {
 const SWIPE_THRESHOLD = 50;
 const GESTURE_DECISION_THRESHOLD = 10;
 
-export default function HorizontalSwiper({ slides, onComplete, onPrev }: HorizontalSwiperProps) {
+const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProps>(function HorizontalSwiper(
+  { slides, onComplete, onPrev },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [translateY, setTranslateY] = useState(0);
@@ -68,6 +76,28 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
       onCompleteRef.current();
     }
   }, [currentIndex, slides.length]);
+
+  // 前のスライドへ
+  const goToPrev = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (currentIndex > 0) {
+      const slideWidth = container.clientWidth;
+      container.scrollTo({
+        left: (currentIndex - 1) * slideWidth,
+        behavior: 'smooth',
+      });
+    } else if (onPrevRef.current) {
+      onPrevRef.current();
+    }
+  }, [currentIndex]);
+
+  // refで外部から制御可能にする
+  useImperativeHandle(ref, () => ({
+    goToNext,
+    goToPrev,
+  }), [goToNext, goToPrev]);
 
   // 特定のスライドへ移動
   const goToSlide = useCallback((index: number) => {
@@ -311,4 +341,6 @@ export default function HorizontalSwiper({ slides, onComplete, onPrev }: Horizon
 
     </div>
   );
-}
+});
+
+export default HorizontalSwiper;

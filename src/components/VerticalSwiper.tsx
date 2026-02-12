@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Mousewheel } from 'swiper/modules';
 import Image from 'next/image';
@@ -13,14 +13,38 @@ import type { Swiper as SwiperType } from 'swiper';
 
 import 'swiper/css';
 
-export default function VerticalSwiper() {
+export interface VerticalSwiperHandle {
+  goToNext: () => void;
+  goToPrev: () => void;
+  goHorizontalNext: () => void;
+  goHorizontalPrev: () => void;
+}
+
+interface VerticalSwiperProps {
+  onSlideInfoChange?: (info: { isHorizontalSection: boolean; currentIndex: number; totalSlides: number }) => void;
+}
+
+const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(function VerticalSwiper(
+  { onSlideInfoChange },
+  ref
+) {
   const swiperRef = useRef<SwiperType | null>(null);
+  const horizontalSwiperRef = useRef<{ goToNext: () => void; goToPrev: () => void } | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const { trackPageView, setCurrentSlide } = useAnalytics();
 
   // 現在のスライドが横スワイプセクションかどうか
   const currentSlide = slides[currentSlideIndex];
   const isHorizontalSection = currentSlide?.horizontalSlides && currentSlide.horizontalSlides.length > 0;
+
+  // スライド情報の変更を通知
+  useEffect(() => {
+    onSlideInfoChange?.({
+      isHorizontalSection: !!isHorizontalSection,
+      currentIndex: currentSlideIndex,
+      totalSlides: slides.length,
+    });
+  }, [isHorizontalSection, currentSlideIndex, onSlideInfoChange]);
 
   // 横スワイプセクションに入ったらSwiperのタッチを無効化
   useEffect(() => {
@@ -46,6 +70,22 @@ export default function VerticalSwiper() {
       swiperRef.current.slidePrev();
     }
   }, []);
+
+  const goHorizontalNext = useCallback(() => {
+    horizontalSwiperRef.current?.goToNext();
+  }, []);
+
+  const goHorizontalPrev = useCallback(() => {
+    horizontalSwiperRef.current?.goToPrev();
+  }, []);
+
+  // refで外部から制御可能にする
+  useImperativeHandle(ref, () => ({
+    goToNext,
+    goToPrev,
+    goHorizontalNext,
+    goHorizontalPrev,
+  }), [goToNext, goToPrev, goHorizontalNext, goHorizontalPrev]);
 
   const goToSlide = useCallback((index: number) => {
     if (swiperRef.current) {
@@ -91,7 +131,7 @@ export default function VerticalSwiper() {
   }, []);
 
   return (
-    <div className="w-screen h-screen overflow-hidden bg-black">
+    <div className="w-full h-full overflow-hidden bg-black">
       <ClickTracker slideId={currentSlide?.id || '01'} />
       <Swiper
         onSwiper={(swiper) => {
@@ -121,6 +161,7 @@ export default function VerticalSwiper() {
             {/* 横スワイプ分岐がある場合 */}
             {slide.horizontalSlides && slide.horizontalSlides.length > 0 ? (
               <HorizontalSwiper
+                ref={horizontalSwiperRef}
                 slides={slide.horizontalSlides}
                 onComplete={handleHorizontalComplete}
                 onPrev={handleHorizontalPrev}
@@ -181,4 +222,6 @@ export default function VerticalSwiper() {
       )}
     </div>
   );
-}
+});
+
+export default VerticalSwiper;

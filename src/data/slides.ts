@@ -21,166 +21,100 @@ export interface Slide {
 export const slides: Slide[] = [
   {
     id: '01',
-    image: '/images/01.Gemini_Generated_Image_am2oo5am2oo5am2o.png',
-    // CTAなし
+    image: '/images/01_ファーストビュー_作りっぱなしLP.png',
   },
   {
     id: '02',
-    image: '/images/02.Gemini_Generated_Image_idylfpidylfpidyl.png',
-    cta: {
-      text: '理由を知る',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/02_問題提起_制作会社は売れると約束しない.png',
   },
   {
     id: '03',
-    image: '/images/03.Gemini_Generated_Image_2ok8ea2ok8ea2ok8.png',
-    cta: {
-      text: '具体的な解決策を見る',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/03_問題提起_顧客離脱が見えない.png',
   },
   {
     id: '04',
-    image: '/images/04.Gemini_Generated_Image_fov4lufov4lufov4.png',
+    image: '/images/04a_コンセプト_育てる構造_植物.png',
     horizontalSlides: [
       {
-        id: '04-1',
-        image: '/images/04-1.Gemini_Generated_Image_3jd0qf3jd0qf3jd0.png',
-        cta: {
-          text: 'スワイプで次へ →',
-          position: 'bottom-right',
-          action: 'horizontal-swipe',
-        },
+        id: '04a',
+        image: '/images/04a_コンセプト_育てる構造_植物.png',
       },
       {
-        id: '04-2',
-        image: '/images/04-2.Gemini_Generated_Image_2z68hf2z68hf2z68.png',
-        cta: {
-          text: 'スワイプで次へ →',
-          position: 'bottom-right',
-          action: 'horizontal-swipe',
-        },
-      },
-      {
-        id: '04-3',
-        image: '/images/04-3.Gemini_Generated_Image_hpflvihpflvihpfl.png',
-        cta: {
-          text: 'スワイプで次へ →',
-          position: 'bottom-right',
-          action: 'horizontal-swipe',
-        },
+        id: '04b',
+        image: '/images/04b_コンセプト_育てる構造_階段.png',
       },
     ],
   },
   {
     id: '05',
-    image: '/images/05.Gemini_Generated_Image_kd69jykd69jykd69.png',
-    // CTAなし
-  },
-  {
-    id: '06',
-    image: '/images/06.Gemini_Generated_Image_1w09qk1w09qk1w09.png',
-    cta: {
-      text: '運用の実例を見る',
-      position: 'bottom-center',
-      action: 'horizontal-swipe',
-    },
+    image: '/images/05a_従来LP限界_01普通のLPは限界.png',
     horizontalSlides: [
       {
-        id: '06-1',
-        image: '/images/06-1.Gemini_Generated_Image_yw1nk5yw1nk5yw1n.png',
-        cta: {
-          text: '← 前に戻る',
-          position: 'bottom-left',
-          action: 'scroll-prev',
-        },
+        id: '05a',
+        image: '/images/05a_従来LP限界_01普通のLPは限界.png',
       },
       {
-        id: '06-2',
-        image: '/images/06-2.Gemini_Generated_Image_iseag4iseag4isea.png',
-        cta: {
-          text: '← 前に戻る',
-          position: 'bottom-left',
-          action: 'scroll-prev',
-        },
+        id: '05b',
+        image: '/images/05b_従来LP限界_02スワイプで能動的.png',
       },
       {
-        id: '06-3',
-        image: '/images/06-3.Gemini_Generated_Image_nmpi45nmpi45nmpi.png',
-        cta: {
-          text: '← 前に戻る',
-          position: 'bottom-left',
-          action: 'scroll-prev',
-        },
+        id: '05c',
+        image: '/images/05c_従来LP限界_03ページ毎データ取得.png',
       },
     ],
   },
   {
+    id: '06',
+    image: '/images/06_サービス紹介_改善し続ける設計.png',
+  },
+  {
     id: '07',
-    image: '/images/07.Gemini_Generated_Image_kxnaixkxnaixkxna.png',
-    cta: {
-      text: 'メリットを確認',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/07_サービス紹介_1枚1枚に数字が宿る.png',
   },
   {
     id: '08',
-    image: '/images/08.Gemini_Generated_Image_a3323va3323va332.png',
-    cta: {
-      text: 'メリットを確認',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/08a_メリット_01弱点を瞬時に理解.png',
+    horizontalSlides: [
+      {
+        id: '08a',
+        image: '/images/08a_メリット_01弱点を瞬時に理解.png',
+      },
+      {
+        id: '08b',
+        image: '/images/08b_メリット_02スピーディに改善.png',
+      },
+      {
+        id: '08c',
+        image: '/images/08c_メリット_03PDCA10倍速.png',
+      },
+    ],
   },
   {
     id: '09',
-    image: '/images/09.Gemini_Generated_Image_pdrog0pdrog0pdro.png',
-    cta: {
-      text: '疑問を解消する',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/09_運営サポート_お客様中心.png',
   },
   {
     id: '10',
-    image: '/images/10.Gemini_Generated_Image_dfmi7cdfmi7cdfmi.png',
-    cta: {
-      text: '期待できる未来を見る',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/10_専門知識は一切不要.png',
   },
   {
     id: '11',
-    image: '/images/11.Gemini_Generated_Image_pofzatpofzatpofz.png',
-    cta: {
-      text: '体験してください',
-      position: 'bottom-center',
-      action: 'scroll-next',
-    },
+    image: '/images/11_ターゲット_安さ重視には不向き.png',
   },
   {
     id: '12',
-    image: '/images/12.Gemini_Generated_Image_ga0hi0ga0hi0ga0h.png',
-    cta: {
-      text: 'スワイプLP導入相談 →',
-      position: 'bottom-center',
-      action: 'link',
-      href: '#contact',
-    },
+    image: '/images/12_QA_成果は出ますか.png',
   },
   {
     id: '13',
-    image: '/images/13.Gemini_Generated_Image_1nax9v1nax9v1nax.png',
-    cta: {
-      text: '公式LINEで資料を受け取る →',
-      position: 'bottom-center',
-      action: 'link',
-      href: 'https://line.me/',
-    },
+    image: '/images/13_ビジョン_作り直しから育てるへ.png',
+  },
+  {
+    id: '14',
+    image: '/images/14_CTA_弱点を見つける体験.png',
+  },
+  {
+    id: '15',
+    image: '/images/15_CTA最終_個別相談LINE.png',
   },
 ];

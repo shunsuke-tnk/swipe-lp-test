@@ -153,15 +153,9 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
       // 縦ジェスチャーの場合のみ特別な処理
       if (state.gestureDirection !== 'vertical') return;
 
-      const scrollLeft = container.scrollLeft;
-      const slideWidth = container.clientWidth;
-      const currentIdx = Math.round(scrollLeft / slideWidth);
-      const isFirstSlide = currentIdx === 0;
-      const isLastSlide = currentIdx === slides.length - 1;
-
-      // 端でのみ縦スワイプを許可
-      const canMoveUp = isLastSlide && diffY < 0;
-      const canMoveDown = isFirstSlide && diffY > 0;
+      // どの横位置からでも縦スワイプで上下に移動可能
+      const canMoveUp = diffY < 0;
+      const canMoveDown = diffY > 0;
 
       if (canMoveUp || canMoveDown) {
         // 指の動きに追従（抵抗感を加える）
@@ -252,8 +246,8 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
     };
   }, [slides.length, updateCurrentIndex]);
 
-  // ヒント表示の計算
-  const showRightHint = currentIndex === slides.length - 1;
+  // 右にスワイプ可能かどうか
+  const canGoRight = currentIndex < slides.length - 1;
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -297,36 +291,8 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
       />
 
 
-      {/* 最後のスライド：下スワイプヒント */}
-      {showRightHint && onComplete && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none">
-          <div
-            className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
-            style={{
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-            }}
-          >
-            <svg
-              className="w-5 h-5 mb-0.5 drop-shadow-md"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
-            </svg>
-            <span className="font-medium">Swipe</span>
-          </div>
-        </div>
-      )}
-
-      {/* 中間スライドでの右矢印 */}
-      {!showRightHint && currentIndex < slides.length - 1 && (
+      {/* 右にスワイプ可能な場合の右矢印 */}
+      {canGoRight && (
         <button
           onClick={goToNext}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white"

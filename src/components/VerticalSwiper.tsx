@@ -37,6 +37,7 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
 
   const currentSlide = slides[currentSlideIndex];
   const isHorizontalSection = currentSlide?.horizontalSlides && currentSlide.horizontalSlides.length > 0;
+  const transitionSpeed = 420;
 
   useEffect(() => {
     onSlideInfoChange?.({
@@ -50,10 +51,8 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     if (swiperRef.current) {
       if (isHorizontalSection) {
         swiperRef.current.allowTouchMove = false;
-        swiperRef.current.mousewheel?.disable();
       } else {
         swiperRef.current.allowTouchMove = true;
-        swiperRef.current.mousewheel?.enable();
       }
     }
   }, [isHorizontalSection]);
@@ -97,7 +96,6 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     }
 
     swiper.allowTouchMove = true;
-    swiper.mousewheel?.enable();
     swiper.slideTo(targetVerticalIndex);
   }, []);
 
@@ -171,23 +169,43 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
   }, [trackPageView, setCurrentSlide]);
 
   return (
-    <div className="w-full h-full overflow-hidden bg-black" data-click-area>
+    <div className="w-full h-full overflow-hidden bg-black" data-click-area style={{ overscrollBehavior: 'none' }}>
       <ClickTracker slideId={activeSlideId} />
       <Swiper
         onSwiper={(swiper) => {
           swiperRef.current = swiper;
+          // Use non-overshooting easing for smooth slide while avoiding bounce-like tail.
+          if (swiper.wrapperEl) {
+            swiper.wrapperEl.style.transitionTimingFunction = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+          }
+        }}
+        onSlideChangeTransitionStart={(swiper) => {
+          if (swiper.wrapperEl) {
+            swiper.wrapperEl.style.transitionTimingFunction = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+          }
         }}
         onSlideChange={handleSlideChange}
         direction="vertical"
         slidesPerView={1}
-        speed={600}
+        speed={transitionSpeed}
+        cssMode={false}
         mousewheel={{
           forceToAxis: true,
-          thresholdDelta: 30,
-          thresholdTime: 500,
+          thresholdDelta: 60,
+          thresholdTime: 400,
+          releaseOnEdges: false,
         }}
         touchRatio={1.5}
         threshold={10}
+        resistance={false}
+        resistanceRatio={0}
+        followFinger
+        simulateTouch
+        touchReleaseOnEdges={false}
+        passiveListeners={false}
+        preventInteractionOnTransition
+        shortSwipes
+        longSwipesRatio={0.15}
         modules={[Mousewheel]}
         className="w-full h-full vertical-swiper"
         style={{
@@ -214,6 +232,7 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
                     fill
                     className="object-contain object-center"
                     priority={index < 2}
+                    draggable={false}
                   />
                 </div>
               </div>
@@ -223,7 +242,7 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
       </Swiper>
 
       {!isHorizontalSection && currentSlideIndex < slides.length - 1 && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce pointer-events-none">
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
           <div
             className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
             style={{

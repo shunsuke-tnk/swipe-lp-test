@@ -162,24 +162,23 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
         return;
       }
 
+      // Keep gesture continuity, then hand off to parent vertical swiper without overshoot.
+      wheelLockedRef.current = true;
       setIsTransitioning(true);
-      setTranslateY(direction === 'next' ? -window.innerHeight * 0.25 : window.innerHeight * 0.25);
-
+      onVerticalSwipeRef.current(direction, stateRef.current.currentIndex);
       window.setTimeout(() => {
-        onVerticalSwipeRef.current?.(direction, stateRef.current.currentIndex);
         setTranslateX(0);
         setTranslateY(0);
         setIsTransitioning(false);
-      }, 180);
+        wheelLockedRef.current = false;
+      }, TRANSITION_DURATION_MS);
     };
 
-    const handleTouchStart = (e: TouchEvent) => {
+    const beginGesture = (clientX: number, clientY: number) => {
       if (touchStateRef.current.isActive) return;
-
-      const touch = e.touches[0];
       touchStateRef.current = {
-        startX: touch.clientX,
-        startY: touch.clientY,
+        startX: clientX,
+        startY: clientY,
         hasTriggered: false,
         gestureDirection: null,
         isActive: true,
@@ -189,13 +188,12 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
       setTranslateY(0);
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const updateGesture = (clientX: number, clientY: number) => {
       const state = touchStateRef.current;
       if (!state.isActive || state.hasTriggered) return;
 
-      const touch = e.touches[0];
-      const diffX = touch.clientX - state.startX;
-      const diffY = touch.clientY - state.startY;
+      const diffX = clientX - state.startX;
+      const diffY = clientY - state.startY;
       const absDiffX = Math.abs(diffX);
       const absDiffY = Math.abs(diffY);
 
@@ -205,24 +203,21 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
 
       if (!state.gestureDirection) return;
 
-      e.preventDefault();
-
       if (state.gestureDirection === 'horizontal') {
         setTranslateX(diffX * 0.5);
         setTranslateY(0);
       } else {
-        setTranslateY(diffY * 0.4);
+        setTranslateY(Math.max(-140, Math.min(140, diffY * 0.22)));
         setTranslateX(0);
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
+    const endGesture = (clientX: number, clientY: number) => {
       const state = touchStateRef.current;
       if (!state.isActive) return;
 
-      const touch = e.changedTouches[0];
-      const diffX = touch.clientX - state.startX;
-      const diffY = touch.clientY - state.startY;
+      const diffX = clientX - state.startX;
+      const diffY = clientY - state.startY;
 
       if (!state.gestureDirection) {
         state.isActive = false;
@@ -251,6 +246,46 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
 
       state.gestureDirection = null;
       state.isActive = false;
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      beginGesture(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      updateGesture(touch.clientX, touch.clientY);
+      if (touchStateRef.current.gestureDirection) {
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      endGesture(touch.clientX, touch.clientY);
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      beginGesture(e.clientX, e.clientY);
+      e.preventDefault();
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!touchStateRef.current.isActive) return;
+      updateGesture(e.clientX, e.clientY);
+      if (touchStateRef.current.gestureDirection) {
+        e.preventDefault();
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!touchStateRef.current.isActive) return;
+      endGesture(e.clientX, e.clientY);
     };
 
     const handleWheel = (e: WheelEvent) => {
@@ -288,12 +323,18 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
     container.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
       container.removeEventListener('wheel', handleWheel);
     };
   }, [finishTransitionLater, goToNext, goToPrev]);
@@ -308,7 +349,7 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
         className="absolute inset-0"
         style={{
           transform: `translateX(calc(-${(currentIndex * 100) / Math.max(slides.length, 1)}% + ${translateX}px)) translateY(${translateY}px)`,
-          transition: isTransitioning ? 'transform 0.3s ease-out' : 'none',
+          transition: isTransitioning ? 'transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none',
           display: 'flex',
           width: `${slides.length * 100}%`,
           height: '100%',

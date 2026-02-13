@@ -151,7 +151,7 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
   }, [trackPageView, setCurrentSlide]);
 
   return (
-    <div className="w-full h-full overflow-hidden bg-black">
+    <div className="w-full h-full overflow-hidden bg-black" data-click-area>
       <ClickTracker slideId={currentSlide?.id || '01'} />
       <Swiper
         onSwiper={(swiper) => {

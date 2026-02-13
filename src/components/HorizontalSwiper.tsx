@@ -15,6 +15,7 @@ export interface HorizontalSwiperHandle {
 interface HorizontalSwiperProps {
   slides: NonNullable<Slide['horizontalSlides']>;
   onVerticalSwipe?: (direction: 'next' | 'prev', horizontalIndex: number) => void;
+  onSlideChange?: (slideId: string, index: number) => void;
 }
 
 const SWIPE_THRESHOLD = 50;
@@ -22,7 +23,7 @@ const GESTURE_DECISION_THRESHOLD = 10;
 const TRANSITION_DURATION_MS = 300;
 
 const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProps>(function HorizontalSwiper(
-  { slides, onVerticalSwipe },
+  { slides, onVerticalSwipe, onSlideChange },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,10 +46,22 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
   }, [currentIndex, slides.length]);
 
   const onVerticalSwipeRef = useRef(onVerticalSwipe);
+  const onSlideChangeRef = useRef(onSlideChange);
 
   useEffect(() => {
     onVerticalSwipeRef.current = onVerticalSwipe;
   }, [onVerticalSwipe]);
+
+  useEffect(() => {
+    onSlideChangeRef.current = onSlideChange;
+  }, [onSlideChange]);
+
+  // Notify parent when current slide changes
+  useEffect(() => {
+    if (slides.length > 0 && currentIndex < slides.length) {
+      onSlideChangeRef.current?.(slides[currentIndex].id, currentIndex);
+    }
+  }, [currentIndex, slides]);
 
   useEffect(() => {
     return () => {

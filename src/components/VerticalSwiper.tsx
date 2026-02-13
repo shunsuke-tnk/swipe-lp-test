@@ -31,6 +31,8 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
   const swiperRef = useRef<SwiperType | null>(null);
   const horizontalSwiperRefs = useRef<Record<number, HorizontalSwiperHandle | null>>({});
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  // Track the actual displayed slide ID (including horizontal sub-slides like 04a, 05b, etc.)
+  const [activeSlideId, setActiveSlideId] = useState('01');
   const { trackPageView, setCurrentSlide } = useAnalytics();
 
   const currentSlide = slides[currentSlideIndex];
@@ -59,6 +61,17 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
   const registerHorizontalSwiper = useCallback((verticalIndex: number, instance: HorizontalSwiperHandle | null) => {
     horizontalSwiperRefs.current[verticalIndex] = instance;
   }, []);
+
+  // Callback when horizontal slide changes - updates the active slide ID for click tracking
+  const handleHorizontalSlideChange = useCallback((slideId: string, _index: number) => {
+    setActiveSlideId(slideId);
+    setCurrentSlide(slideId);
+    trackPageView({
+      slideId,
+      slideType: 'horizontal',
+      scrollDirection: 'next',
+    });
+  }, [setCurrentSlide, trackPageView]);
 
   const moveVerticalFromHorizontal = useCallback((
     fromVerticalIndex: number,
@@ -141,10 +154,17 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     const prevIndex = swiper.previousIndex;
 
     setCurrentSlideIndex(newIndex);
-    setCurrentSlide(slide.id);
+
+    // For horizontal sections, use the first horizontal slide ID; otherwise use the main slide ID
+    const effectiveSlideId = slide.horizontalSlides && slide.horizontalSlides.length > 0
+      ? slide.horizontalSlides[0].id
+      : slide.id;
+
+    setActiveSlideId(effectiveSlideId);
+    setCurrentSlide(effectiveSlideId);
 
     trackPageView({
-      slideId: slide.id,
+      slideId: effectiveSlideId,
       slideType: 'vertical',
       scrollDirection: newIndex > prevIndex ? 'next' : 'prev',
     });
@@ -152,7 +172,7 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
 
   return (
     <div className="w-full h-full overflow-hidden bg-black" data-click-area>
-      <ClickTracker slideId={currentSlide?.id || '01'} />
+      <ClickTracker slideId={activeSlideId} />
       <Swiper
         onSwiper={(swiper) => {
           swiperRef.current = swiper;
@@ -183,6 +203,7 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
                 ref={(instance) => registerHorizontalSwiper(index, instance)}
                 slides={slide.horizontalSlides}
                 onVerticalSwipe={(direction, horizontalIndex) => moveVerticalFromHorizontal(index, direction, horizontalIndex)}
+                onSlideChange={handleHorizontalSlideChange}
               />
             ) : (
               <div className="relative w-full h-full" style={{ touchAction: 'pan-y' }}>

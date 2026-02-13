@@ -11,13 +11,16 @@ import { useDateRange } from '@/hooks/useDateRange';
 import { slides } from '@/data/slides';
 import type { HeatmapData } from '@/types/analytics';
 
-// Get all slide IDs including horizontal slides
+// Get all slide IDs - for slides with horizontal sub-slides, only include the sub-slides (not the parent)
 function getAllSlideIds(): string[] {
   const ids: string[] = [];
   slides.forEach((slide) => {
-    ids.push(slide.id);
-    if (slide.horizontalSlides) {
+    if (slide.horizontalSlides && slide.horizontalSlides.length > 0) {
+      // Only add the sub-slides (04a, 04b, etc.), not the parent (04)
       slide.horizontalSlides.forEach((hs) => ids.push(hs.id));
+    } else {
+      // Regular slide without horizontal sub-slides
+      ids.push(slide.id);
     }
   });
   return ids;

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import ResponsiveSidebar from '@/components/admin/ResponsiveSidebar';
 import HeatmapCanvas from '@/components/admin/HeatmapCanvas';
@@ -26,15 +26,40 @@ function getAllSlideIds(): string[] {
   return ids;
 }
 
+// Wrapper component to handle Suspense for useSearchParams
 export default function HeatmapPage() {
+  return (
+    <Suspense fallback={
+      <ResponsiveSidebar>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        </div>
+      </ResponsiveSidebar>
+    }>
+      <HeatmapPageContent />
+    </Suspense>
+  );
+}
+
+function HeatmapPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [selectedSlide, setSelectedSlide] = useState<string>('01');
+  const searchParams = useSearchParams();
+  const slideFromUrl = searchParams.get('slide');
+
+  const [selectedSlide, setSelectedSlide] = useState<string>(slideFromUrl || '01');
   const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { from, to, preset, error, setPreset, setCustomRange } = useDateRange('7d');
   const allSlideIds = getAllSlideIds();
+
+  // Update selected slide when URL param changes
+  useEffect(() => {
+    if (slideFromUrl && allSlideIds.includes(slideFromUrl)) {
+      setSelectedSlide(slideFromUrl);
+    }
+  }, [slideFromUrl, allSlideIds]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {

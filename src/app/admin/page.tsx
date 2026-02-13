@@ -7,6 +7,8 @@ import ResponsiveSidebar from '@/components/admin/ResponsiveSidebar';
 import KPICard from '@/components/admin/KPICard';
 import TimeSeriesChart from '@/components/admin/TimeSeriesChart';
 import SlideRanking from '@/components/admin/SlideRanking';
+import SlideStatsTable, { SlideDetailStats } from '@/components/admin/SlideStatsTable';
+import SlideDetailPanel from '@/components/admin/SlideDetailPanel';
 import DateRangePicker from '@/components/admin/DateRangePicker';
 import ExportButton from '@/components/admin/ExportButton';
 import { useDateRange } from '@/hooks/useDateRange';
@@ -15,6 +17,7 @@ import type { DashboardStats, TimeSeriesPoint, RealtimeStats } from '@/types/ana
 interface StatsResponse extends DashboardStats {
   timeSeries: TimeSeriesPoint[];
   realtime: RealtimeStats;
+  allSlides: SlideDetailStats[];
 }
 
 export default function AdminDashboard() {
@@ -22,6 +25,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
 
   const { from, to, preset, error, setPreset, setCustomRange } = useDateRange('7d');
 
@@ -149,7 +153,7 @@ export default function AdminDashboard() {
             )}
 
             {/* Rankings */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
               {stats?.topSlides && stats.topSlides.length > 0 && (
                 <SlideRanking
                   title="閲覧数の多いスライド"
@@ -167,6 +171,26 @@ export default function AdminDashboard() {
                 />
               )}
             </div>
+
+            {/* All Slides Stats Table with Detail Panel */}
+            {stats?.allSlides && stats.allSlides.length > 0 && (
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6 mb-6">
+                <div className="xl:col-span-2">
+                  <SlideStatsTable
+                    stats={stats.allSlides}
+                    onSlideSelect={setSelectedSlideId}
+                    selectedSlideId={selectedSlideId || undefined}
+                  />
+                </div>
+                <div className="xl:col-span-1">
+                  <SlideDetailPanel
+                    slideId={selectedSlideId || ''}
+                    stats={selectedSlideId ? stats.allSlides.find(s => s.slideId === selectedSlideId) || null : null}
+                    onClose={() => setSelectedSlideId(null)}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Empty State */}
             {(!stats || stats.totalPageViews === 0) && (

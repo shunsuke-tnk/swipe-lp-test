@@ -4,6 +4,17 @@ import { createServerClient } from '@/lib/supabase';
 import { getRealtimeStats } from '@/lib/upstash';
 import type { DashboardStats, TimeSeriesPoint, SlideStats } from '@/types/analytics';
 
+// Extended slide stats with click data
+interface SlideDetailStats {
+  slideId: string;
+  views: number;
+  uniqueVisitors: number;
+  avgDurationMs: number;
+  bounceRate: number;
+  ctaClicks: number;
+  totalClicks: number;
+}
+
 export async function GET(request: NextRequest) {
   // Check authentication
   const session = await auth();
@@ -122,6 +133,62 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.bounceRate - a.bounceRate)
       .slice(0, 5);
 
+    // Get CTA clicks per slide
+    const { data: ctaClicksPerSlide } = await supabase
+      .from('cta_clicks')
+      .select('slide_id')
+      .gte('clicked_at', `${from}T00:00:00`)
+      .lte('clicked_at', `${to}T23:59:59`);
+
+    const ctaClicksBySlide = new Map<string, number>();
+    ctaClicksPerSlide?.forEach((click) => {
+      ctaClicksBySlide.set(click.slide_id, (ctaClicksBySlide.get(click.slide_id) || 0) + 1);
+    });
+
+    // Get total clicks per slide
+    const { data: clickEventsPerSlide } = await supabase
+      .from('click_events')
+      .select('slide_id')
+      .gte('clicked_at', `${from}T00:00:00`)
+      .lte('clicked_at', `${to}T23:59:59`);
+
+    const totalClicksBySlide = new Map<string, number>();
+    clickEventsPerSlide?.forEach((click) => {
+      totalClicksBySlide.set(click.slide_id, (totalClicksBySlide.get(click.slide_id) || 0) + 1);
+    });
+
+    // Get unique visitors per slide
+    const { data: slideVisitors } = await supabase
+      .from('page_views')
+      .select('slide_id, session_id')
+      .gte('viewed_at', `${from}T00:00:00`)
+      .lte('viewed_at', `${to}T23:59:59`);
+
+    const uniqueVisitorsBySlide = new Map<string, Set<string>>();
+    slideVisitors?.forEach((pv) => {
+      const visitors = uniqueVisitorsBySlide.get(pv.slide_id) || new Set();
+      visitors.add(pv.session_id);
+      uniqueVisitorsBySlide.set(pv.slide_id, visitors);
+    });
+
+    // Build all slides stats
+    const allSlides: SlideDetailStats[] = Array.from(slideStats.entries())
+      .map(([slideId, stats]) => ({
+        slideId,
+        views: stats.views,
+        uniqueVisitors: uniqueVisitorsBySlide.get(slideId)?.size || 0,
+        avgDurationMs: stats.views > 0 ? stats.totalDuration / stats.views : 0,
+        bounceRate: exitCounts.has(slideId) && stats.views > 0
+          ? (exitCounts.get(slideId)! / stats.views) * 100
+          : 0,
+        ctaClicks: ctaClicksBySlide.get(slideId) || 0,
+        totalClicks: totalClicksBySlide.get(slideId) || 0,
+      }))
+      .sort((a, b) => {
+        // Sort by slideId naturally (01, 02, ..., 04a, 04b, etc.)
+        return a.slideId.localeCompare(b.slideId, undefined, { numeric: true });
+      });
+
     // Get time series data
     const { data: timeSeriesRaw } = await supabase
       .from('page_views')
@@ -151,7 +218,7 @@ export async function GET(request: NextRequest) {
     // Get realtime stats
     const realtime = await getRealtimeStats();
 
-    const stats: DashboardStats & { timeSeries: TimeSeriesPoint[]; realtime: typeof realtime } = {
+    const stats: DashboardStats & { timeSeries: TimeSeriesPoint[]; realtime: typeof realtime; allSlides: SlideDetailStats[] } = {
       totalPageViews: totalPageViews || 0,
       uniqueVisitors,
       avgSessionDuration,
@@ -161,6 +228,7 @@ export async function GET(request: NextRequest) {
       highBounceSlides,
       timeSeries,
       realtime,
+      allSlides,
     };
 
     return NextResponse.json(stats);

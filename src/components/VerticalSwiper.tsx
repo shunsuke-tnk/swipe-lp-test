@@ -4,7 +4,7 @@ import { useRef, useCallback, useState, useEffect, useImperativeHandle, forwardR
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Mousewheel } from 'swiper/modules';
 import Image from 'next/image';
-import HorizontalSwiper from './HorizontalSwiper';
+import HorizontalSwiper, { HorizontalSwiperHandle } from './HorizontalSwiper';
 import Pagination from './Pagination';
 import { slides } from '@/data/slides';
 import { useAnalytics } from '@/components/analytics/AnalyticsProvider';
@@ -29,15 +29,13 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
   ref
 ) {
   const swiperRef = useRef<SwiperType | null>(null);
-  const horizontalSwiperRef = useRef<{ goToNext: () => void; goToPrev: () => void } | null>(null);
+  const horizontalSwiperRefs = useRef<Record<number, HorizontalSwiperHandle | null>>({});
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const { trackPageView, setCurrentSlide } = useAnalytics();
 
-  // 現在のスライドが横スワイプセクションかどうか
   const currentSlide = slides[currentSlideIndex];
   const isHorizontalSection = currentSlide?.horizontalSlides && currentSlide.horizontalSlides.length > 0;
 
-  // スライド情報の変更を通知
   useEffect(() => {
     onSlideInfoChange?.({
       isHorizontalSection: !!isHorizontalSection,
@@ -46,7 +44,6 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     });
   }, [isHorizontalSection, currentSlideIndex, onSlideInfoChange]);
 
-  // 横スワイプセクションに入ったらSwiperのタッチを無効化
   useEffect(() => {
     if (swiperRef.current) {
       if (isHorizontalSection) {
@@ -59,27 +56,72 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     }
   }, [isHorizontalSection]);
 
-  const goToNext = useCallback(() => {
-    if (swiperRef.current) {
-      swiperRef.current.slideNext();
-    }
+  const registerHorizontalSwiper = useCallback((verticalIndex: number, instance: HorizontalSwiperHandle | null) => {
+    horizontalSwiperRefs.current[verticalIndex] = instance;
   }, []);
+
+  const moveVerticalFromHorizontal = useCallback((
+    fromVerticalIndex: number,
+    direction: 'next' | 'prev',
+    fromHorizontalIndex: number
+  ) => {
+    const swiper = swiperRef.current;
+    if (!swiper) return;
+
+    const targetVerticalIndex = direction === 'next' ? fromVerticalIndex + 1 : fromVerticalIndex - 1;
+    if (targetVerticalIndex < 0 || targetVerticalIndex >= slides.length) return;
+
+    const targetSlide = slides[targetVerticalIndex];
+    if (targetSlide.horizontalSlides && targetSlide.horizontalSlides.length > 0) {
+      // 04b -> 05a の要件に合わせて、04から05へ下移動する場合は常にaを表示する
+      const shouldResetToFirstHorizontal =
+        direction === 'next' && fromVerticalIndex === 3 && targetVerticalIndex === 4;
+
+      const targetHorizontalIndex = shouldResetToFirstHorizontal
+        ? 0
+        : Math.min(fromHorizontalIndex, targetSlide.horizontalSlides.length - 1);
+      horizontalSwiperRefs.current[targetVerticalIndex]?.setIndex(targetHorizontalIndex);
+    }
+
+    swiper.allowTouchMove = true;
+    swiper.mousewheel?.enable();
+    swiper.slideTo(targetVerticalIndex);
+  }, []);
+
+  const goToNext = useCallback(() => {
+    if (!swiperRef.current) return;
+
+    if (isHorizontalSection) {
+      const horizontalIndex = horizontalSwiperRefs.current[currentSlideIndex]?.getCurrentIndex()
+        ?? 0;
+      moveVerticalFromHorizontal(currentSlideIndex, 'next', horizontalIndex);
+      return;
+    }
+
+    swiperRef.current.slideNext();
+  }, [currentSlideIndex, isHorizontalSection, moveVerticalFromHorizontal]);
 
   const goToPrev = useCallback(() => {
-    if (swiperRef.current) {
-      swiperRef.current.slidePrev();
+    if (!swiperRef.current) return;
+
+    if (isHorizontalSection) {
+      const horizontalIndex = horizontalSwiperRefs.current[currentSlideIndex]?.getCurrentIndex()
+        ?? 0;
+      moveVerticalFromHorizontal(currentSlideIndex, 'prev', horizontalIndex);
+      return;
     }
-  }, []);
+
+    swiperRef.current.slidePrev();
+  }, [currentSlideIndex, isHorizontalSection, moveVerticalFromHorizontal]);
 
   const goHorizontalNext = useCallback(() => {
-    horizontalSwiperRef.current?.goToNext();
-  }, []);
+    horizontalSwiperRefs.current[currentSlideIndex]?.goToNext();
+  }, [currentSlideIndex]);
 
   const goHorizontalPrev = useCallback(() => {
-    horizontalSwiperRef.current?.goToPrev();
-  }, []);
+    horizontalSwiperRefs.current[currentSlideIndex]?.goToPrev();
+  }, [currentSlideIndex]);
 
-  // refで外部から制御可能にする
   useImperativeHandle(ref, () => ({
     goToNext,
     goToPrev,
@@ -93,7 +135,6 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     }
   }, []);
 
-
   const handleSlideChange = useCallback((swiper: SwiperType) => {
     const newIndex = swiper.activeIndex;
     const slide = slides[newIndex];
@@ -102,33 +143,12 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
     setCurrentSlideIndex(newIndex);
     setCurrentSlide(slide.id);
 
-    // Track page view
     trackPageView({
       slideId: slide.id,
       slideType: 'vertical',
       scrollDirection: newIndex > prevIndex ? 'next' : 'prev',
     });
   }, [trackPageView, setCurrentSlide]);
-
-  // 横スワイプ完了時に次へ
-  const handleHorizontalComplete = useCallback(() => {
-    if (swiperRef.current) {
-      // 縦スワイプを再有効化してから次へ
-      swiperRef.current.allowTouchMove = true;
-      swiperRef.current.mousewheel?.enable();
-      swiperRef.current.slideNext();
-    }
-  }, []);
-
-  // 横スワイプで前のセクションへ戻る
-  const handleHorizontalPrev = useCallback(() => {
-    if (swiperRef.current) {
-      // 縦スワイプを再有効化してから前へ
-      swiperRef.current.allowTouchMove = true;
-      swiperRef.current.mousewheel?.enable();
-      swiperRef.current.slidePrev();
-    }
-  }, []);
 
   return (
     <div className="w-full h-full overflow-hidden bg-black">
@@ -158,16 +178,13 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
       >
         {slides.map((slide, index) => (
           <SwiperSlide key={slide.id} className="relative">
-            {/* 横スワイプ分岐がある場合 */}
             {slide.horizontalSlides && slide.horizontalSlides.length > 0 ? (
               <HorizontalSwiper
-                ref={horizontalSwiperRef}
+                ref={(instance) => registerHorizontalSwiper(index, instance)}
                 slides={slide.horizontalSlides}
-                onComplete={handleHorizontalComplete}
-                onPrev={handleHorizontalPrev}
+                onVerticalSwipe={(direction, horizontalIndex) => moveVerticalFromHorizontal(index, direction, horizontalIndex)}
               />
             ) : (
-              /* 通常の縦スワイプスライド */
               <div className="relative w-full h-full" style={{ touchAction: 'pan-y' }}>
                 <Image
                   src={slide.image}
@@ -176,21 +193,19 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
                   className="object-cover object-center"
                   priority={index < 2}
                 />
-
               </div>
             )}
           </SwiperSlide>
         ))}
       </Swiper>
 
-      {/* スワイプインジケーター - 横スワイプセクション・最終ページでは非表示 */}
       {!isHorizontalSection && currentSlideIndex < slides.length - 1 && (
         <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce pointer-events-none">
           <div
             className="flex flex-col items-center text-white text-xs bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
             style={{
               boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
             }}
           >
             <svg
@@ -211,7 +226,6 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
         </div>
       )}
 
-      {/* カスタムページネーション - 横スワイプセクション以外で表示 */}
       {!isHorizontalSection && (
         <Pagination
           current={currentSlideIndex}

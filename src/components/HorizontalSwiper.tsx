@@ -8,130 +8,177 @@ import type { Slide } from '@/data/slides';
 export interface HorizontalSwiperHandle {
   goToNext: () => void;
   goToPrev: () => void;
+  setIndex: (index: number) => void;
+  getCurrentIndex: () => number;
 }
 
 interface HorizontalSwiperProps {
   slides: NonNullable<Slide['horizontalSlides']>;
-  onComplete?: () => void;
-  onPrev?: () => void;
+  onVerticalSwipe?: (direction: 'next' | 'prev', horizontalIndex: number) => void;
 }
 
-// 統一されたスワイプ閾値
 const SWIPE_THRESHOLD = 50;
 const GESTURE_DECISION_THRESHOLD = 10;
+const TRANSITION_DURATION_MS = 300;
 
 const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProps>(function HorizontalSwiper(
-  { slides, onComplete, onPrev },
+  { slides, onVerticalSwipe },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [translateX, setTranslateX] = useState(0);
   const [translateY, setTranslateY] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // タッチ状態を管理するRef
-  const touchStateRef = useRef({
-    startX: 0,
-    startY: 0,
-    startScrollLeft: 0,
-    hasTriggered: false,
-    gestureDirection: null as 'horizontal' | 'vertical' | null,
+  const transitionTimeoutRef = useRef<number | null>(null);
+  const wheelLockedRef = useRef(false);
+
+  const stateRef = useRef({
+    currentIndex,
+    slidesLength: slides.length,
   });
 
-  // コールバックを最新の状態で保持
-  const onCompleteRef = useRef(onComplete);
-  const onPrevRef = useRef(onPrev);
+  useEffect(() => {
+    stateRef.current.currentIndex = currentIndex;
+    stateRef.current.slidesLength = slides.length;
+  }, [currentIndex, slides.length]);
+
+  const onVerticalSwipeRef = useRef(onVerticalSwipe);
 
   useEffect(() => {
-    onCompleteRef.current = onComplete;
-    onPrevRef.current = onPrev;
-  }, [onComplete, onPrev]);
+    onVerticalSwipeRef.current = onVerticalSwipe;
+  }, [onVerticalSwipe]);
 
-  // 現在のスライドインデックスを更新
-  const updateCurrentIndex = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        window.clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
-    const scrollLeft = container.scrollLeft;
-    const slideWidth = container.clientWidth;
-    const newIndex = Math.round(scrollLeft / slideWidth);
-
-    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < slides.length) {
-      setCurrentIndex(newIndex);
+  const finishTransitionLater = useCallback(() => {
+    if (transitionTimeoutRef.current) {
+      window.clearTimeout(transitionTimeoutRef.current);
     }
-  }, [currentIndex, slides.length]);
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      setIsTransitioning(false);
+      transitionTimeoutRef.current = null;
+    }, TRANSITION_DURATION_MS);
+  }, []);
 
-  // 次のスライドへ
+  const setSlideIndex = useCallback((nextIndex: number) => {
+    if (slides.length === 0) return;
+
+    const clamped = Math.max(0, Math.min(nextIndex, slides.length - 1));
+
+    setIsTransitioning(true);
+    setTranslateX(0);
+    setTranslateY(0);
+    setCurrentIndex(clamped);
+    finishTransitionLater();
+  }, [finishTransitionLater, slides.length]);
+
   const goToNext = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (currentIndex < slides.length - 1) {
-      const slideWidth = container.clientWidth;
-      container.scrollTo({
-        left: (currentIndex + 1) * slideWidth,
-        behavior: 'smooth',
-      });
-    } else if (onCompleteRef.current) {
-      onCompleteRef.current();
+    const { currentIndex: idx, slidesLength } = stateRef.current;
+    if (idx < slidesLength - 1) {
+      setSlideIndex(idx + 1);
+    } else {
+      setIsTransitioning(true);
+      setTranslateX(0);
+      setTranslateY(0);
+      finishTransitionLater();
     }
-  }, [currentIndex, slides.length]);
+  }, [finishTransitionLater, setSlideIndex]);
 
-  // 前のスライドへ
   const goToPrev = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (currentIndex > 0) {
-      const slideWidth = container.clientWidth;
-      container.scrollTo({
-        left: (currentIndex - 1) * slideWidth,
-        behavior: 'smooth',
-      });
-    } else if (onPrevRef.current) {
-      onPrevRef.current();
+    const { currentIndex: idx } = stateRef.current;
+    if (idx > 0) {
+      setSlideIndex(idx - 1);
+    } else {
+      setIsTransitioning(true);
+      setTranslateX(0);
+      setTranslateY(0);
+      finishTransitionLater();
     }
-  }, [currentIndex]);
+  }, [finishTransitionLater, setSlideIndex]);
 
-  // refで外部から制御可能にする
+  const setIndex = useCallback((index: number) => {
+    setSlideIndex(index);
+  }, [setSlideIndex]);
+
+  const getCurrentIndex = useCallback(() => {
+    return stateRef.current.currentIndex;
+  }, []);
+
   useImperativeHandle(ref, () => ({
     goToNext,
     goToPrev,
-  }), [goToNext, goToPrev]);
+    setIndex,
+    getCurrentIndex,
+  }), [goToNext, goToPrev, setIndex, getCurrentIndex]);
 
-  // 特定のスライドへ移動
-  const goToSlide = useCallback((index: number) => {
-    const container = containerRef.current;
-    if (!container) return;
+  useEffect(() => {
+    if (currentIndex <= slides.length - 1) return;
+    setSlideIndex(Math.max(0, slides.length - 1));
+  }, [currentIndex, setSlideIndex, slides.length]);
 
-    const slideWidth = container.clientWidth;
-    container.scrollTo({
-      left: index * slideWidth,
-      behavior: 'smooth',
-    });
-  }, []);
+  const touchStateRef = useRef({
+    startX: 0,
+    startY: 0,
+    hasTriggered: false,
+    gestureDirection: null as 'horizontal' | 'vertical' | null,
+    isActive: false,
+  });
 
-  // 統合されたタッチイベントハンドラ
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    const resetPosition = () => {
+      setIsTransitioning(true);
+      setTranslateX(0);
+      setTranslateY(0);
+      finishTransitionLater();
+    };
+
+    const triggerVerticalTransition = (direction: 'next' | 'prev') => {
+      if (!onVerticalSwipeRef.current) {
+        resetPosition();
+        return;
+      }
+
+      setIsTransitioning(true);
+      setTranslateY(direction === 'next' ? -window.innerHeight * 0.25 : window.innerHeight * 0.25);
+
+      window.setTimeout(() => {
+        onVerticalSwipeRef.current?.(direction, stateRef.current.currentIndex);
+        setTranslateX(0);
+        setTranslateY(0);
+        setIsTransitioning(false);
+      }, 180);
+    };
+
     const handleTouchStart = (e: TouchEvent) => {
+      if (touchStateRef.current.isActive) return;
+
       const touch = e.touches[0];
       touchStateRef.current = {
         startX: touch.clientX,
         startY: touch.clientY,
-        startScrollLeft: container.scrollLeft,
         hasTriggered: false,
         gestureDirection: null,
+        isActive: true,
       };
       setIsTransitioning(false);
+      setTranslateX(0);
       setTranslateY(0);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       const state = touchStateRef.current;
-      if (state.hasTriggered) return;
+      if (!state.isActive || state.hasTriggered) return;
 
       const touch = e.touches[0];
       const diffX = touch.clientX - state.startX;
@@ -139,136 +186,129 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
       const absDiffX = Math.abs(diffX);
       const absDiffY = Math.abs(diffY);
 
-      // ジェスチャー方向を最初の動きで決定
       if (!state.gestureDirection && (absDiffX > GESTURE_DECISION_THRESHOLD || absDiffY > GESTURE_DECISION_THRESHOLD)) {
         state.gestureDirection = absDiffY > absDiffX ? 'vertical' : 'horizontal';
       }
 
-      // 横スクロール中は親への伝播を防止
+      if (!state.gestureDirection) return;
+
+      e.preventDefault();
+
       if (state.gestureDirection === 'horizontal') {
-        e.stopPropagation();
-        return;
-      }
-
-      // 縦ジェスチャーの場合のみ特別な処理
-      if (state.gestureDirection !== 'vertical') return;
-
-      // どの横位置からでも縦スワイプで上下に移動可能
-      const canMoveUp = diffY < 0;
-      const canMoveDown = diffY > 0;
-
-      if (canMoveUp || canMoveDown) {
-        // 指の動きに追従（抵抗感を加える）
-        const resistance = 0.4;
-        setTranslateY(diffY * resistance);
-
-        // 閾値を超えたら遷移をトリガー
-        if (canMoveUp && diffY < -SWIPE_THRESHOLD) {
-          state.hasTriggered = true;
-          triggerTransition('next');
-        } else if (canMoveDown && diffY > SWIPE_THRESHOLD) {
-          state.hasTriggered = true;
-          triggerTransition('prev');
-        }
+        setTranslateX(diffX * 0.5);
+        setTranslateY(0);
+      } else {
+        setTranslateY(diffY * 0.4);
+        setTranslateX(0);
       }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       const state = touchStateRef.current;
+      if (!state.isActive) return;
 
-      // 縦ジェスチャーで遷移しなかった場合、元に戻す
-      if (state.gestureDirection === 'vertical' && !state.hasTriggered) {
-        setIsTransitioning(true);
-        setTranslateY(0);
-        setTimeout(() => setIsTransitioning(false), 150);
+      const touch = e.changedTouches[0];
+      const diffX = touch.clientX - state.startX;
+      const diffY = touch.clientY - state.startY;
+
+      if (!state.gestureDirection) {
+        state.isActive = false;
         return;
       }
 
-      // 横スワイプで端での追加スワイプ処理
-      if (state.gestureDirection === 'horizontal' && !state.hasTriggered) {
-        const touch = e.changedTouches[0];
-        const diffX = touch.clientX - state.startX;
-        const currentScrollLeft = container.scrollLeft;
-        const maxScroll = container.scrollWidth - container.clientWidth;
+      state.hasTriggered = true;
 
-        // 左端で右にスワイプ（前のセクションへ）
-        if (state.startScrollLeft <= 5 && diffX > SWIPE_THRESHOLD && currentScrollLeft <= 5) {
-          if (onPrevRef.current) {
-            onPrevRef.current();
-          }
+      if (state.gestureDirection === 'horizontal') {
+        if (diffX < -SWIPE_THRESHOLD) {
+          goToNext();
+        } else if (diffX > SWIPE_THRESHOLD) {
+          goToPrev();
+        } else {
+          resetPosition();
         }
-
-        // 右端で左にスワイプ（次のセクションへ）
-        if (state.startScrollLeft >= maxScroll - 5 && diffX < -SWIPE_THRESHOLD && currentScrollLeft >= maxScroll - 5) {
-          if (onCompleteRef.current) {
-            onCompleteRef.current();
-          }
+      } else {
+        if (diffY < -SWIPE_THRESHOLD) {
+          triggerVerticalTransition('next');
+        } else if (diffY > SWIPE_THRESHOLD) {
+          triggerVerticalTransition('prev');
+        } else {
+          resetPosition();
         }
       }
 
-      // リセット
       state.gestureDirection = null;
+      state.isActive = false;
     };
 
-    const triggerTransition = (direction: 'next' | 'prev') => {
-      setIsTransitioning(true);
-      setTranslateY(direction === 'next' ? -window.innerHeight * 0.3 : window.innerHeight * 0.3);
+    const handleWheel = (e: WheelEvent) => {
+      if (wheelLockedRef.current) return;
 
-      setTimeout(() => {
-        if (direction === 'next' && onCompleteRef.current) {
-          onCompleteRef.current();
-        } else if (direction === 'prev' && onPrevRef.current) {
-          onPrevRef.current();
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+
+      if (absX < 8 && absY < 8) return;
+
+      if (absY > absX && absY > SWIPE_THRESHOLD / 2 && onVerticalSwipeRef.current) {
+        e.preventDefault();
+        wheelLockedRef.current = true;
+        onVerticalSwipeRef.current(e.deltaY > 0 ? 'next' : 'prev', stateRef.current.currentIndex);
+        window.setTimeout(() => {
+          wheelLockedRef.current = false;
+        }, TRANSITION_DURATION_MS);
+        return;
+      }
+
+      if (absX > absY && absX > SWIPE_THRESHOLD / 2) {
+        e.preventDefault();
+        wheelLockedRef.current = true;
+        if (e.deltaX > 0) {
+          goToNext();
+        } else {
+          goToPrev();
         }
-        setTranslateY(0);
-        setIsTransitioning(false);
-      }, 150);
-    };
-
-    // スクロール終了検出
-    let scrollTimeout: NodeJS.Timeout;
-    const handleScroll = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(updateCurrentIndex, 50);
+        window.setTimeout(() => {
+          wheelLockedRef.current = false;
+        }, TRANSITION_DURATION_MS);
+      }
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
-    container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
+      container.removeEventListener('wheel', handleWheel);
     };
-  }, [slides.length, updateCurrentIndex]);
-
-  // 右にスワイプ可能かどうか
-  const canGoRight = currentIndex < slides.length - 1;
+  }, [finishTransitionLater, goToNext, goToPrev]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      {/* スクロールコンテナ */}
+    <div
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden"
+      style={{ touchAction: 'none' }}
+    >
       <div
-        ref={containerRef}
-        className="w-full h-full flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-hide"
+        className="absolute inset-0"
         style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-x pinch-zoom',
-          transform: `translateY(${translateY}px)`,
-          transition: isTransitioning ? 'transform 0.15s ease-out' : 'none',
+          transform: `translateX(calc(-${(currentIndex * 100) / Math.max(slides.length, 1)}% + ${translateX}px)) translateY(${translateY}px)`,
+          transition: isTransitioning ? 'transform 0.3s ease-out' : 'none',
+          display: 'flex',
+          width: `${slides.length * 100}%`,
+          height: '100%',
         }}
       >
         {slides.map((slide, index) => (
           <div
             key={slide.id}
-            className="w-full h-full flex-shrink-0 snap-center relative"
-            style={{ scrollSnapStop: 'always' }}
+            className="relative h-full"
+            style={{
+              width: `${100 / slides.length}%`,
+              flexShrink: 0,
+            }}
           >
             <Image
               src={slide.image}
@@ -282,29 +322,12 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
         ))}
       </div>
 
-      {/* ページネーション */}
       <Pagination
         current={currentIndex}
         total={slides.length}
         direction="horizontal"
-        onDotClick={goToSlide}
+        onDotClick={setSlideIndex}
       />
-
-
-      {/* 右にスワイプ可能な場合の右矢印 */}
-      {canGoRight && (
-        <button
-          onClick={goToNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white"
-          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
-          aria-label="Next slide"
-        >
-          <svg className="w-6 h-6 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      )}
-
     </div>
   );
 });

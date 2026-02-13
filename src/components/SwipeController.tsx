@@ -24,7 +24,7 @@ export default function SwipeController({
     <div className="flex flex-col items-center gap-2">
       {/* 操作説明 */}
       <div className="text-gray-400 text-sm mb-2 text-center">
-        {isHorizontalSection ? '← → で横スワイプ' : '↑ ↓ で縦スワイプ'}
+        {isHorizontalSection ? '↑ ↓ で縦移動 / ← → で横移動' : '↑ ↓ で縦スワイプ'}
       </div>
 
       {/* 十字キー配置 */}
@@ -33,8 +33,7 @@ export default function SwipeController({
         <div />
         <button
           onClick={onUp}
-          className={`${buttonBaseClass} ${!isHorizontalSection ? activeButtonClass : inactiveButtonClass}`}
-          disabled={isHorizontalSection}
+          className={`${buttonBaseClass} ${activeButtonClass}`}
           aria-label="上へスワイプ"
         >
           <svg
@@ -93,8 +92,7 @@ export default function SwipeController({
         <div />
         <button
           onClick={onDown}
-          className={`${buttonBaseClass} ${!isHorizontalSection ? activeButtonClass : inactiveButtonClass}`}
-          disabled={isHorizontalSection}
+          className={`${buttonBaseClass} ${activeButtonClass}`}
           aria-label="下へスワイプ"
         >
           <svg

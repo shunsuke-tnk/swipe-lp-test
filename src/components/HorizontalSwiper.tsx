@@ -310,14 +310,16 @@ const HorizontalSwiper = forwardRef<HorizontalSwiperHandle, HorizontalSwiperProp
               flexShrink: 0,
             }}
           >
-            <Image
-              src={slide.image}
-              alt={`Slide ${slide.id}`}
-              fill
-              className="object-cover object-center"
-              priority={index === 0}
-              draggable={false}
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={slide.image}
+                alt={`Slide ${slide.id}`}
+                fill
+                className="object-contain object-center"
+                priority={index === 0}
+                draggable={false}
+              />
+            </div>
           </div>
         ))}
       </div>

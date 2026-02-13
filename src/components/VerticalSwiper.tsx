@@ -186,13 +186,15 @@ const VerticalSwiper = forwardRef<VerticalSwiperHandle, VerticalSwiperProps>(fun
               />
             ) : (
               <div className="relative w-full h-full" style={{ touchAction: 'pan-y' }}>
-                <Image
-                  src={slide.image}
-                  alt={`Slide ${slide.id}`}
-                  fill
-                  className="object-cover object-center"
-                  priority={index < 2}
-                />
+                <div className="relative w-full h-full">
+                  <Image
+                    src={slide.image}
+                    alt={`Slide ${slide.id}`}
+                    fill
+                    className="object-contain object-center"
+                    priority={index < 2}
+                  />
+                </div>
               </div>
             )}
           </SwiperSlide>
